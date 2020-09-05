@@ -13,11 +13,9 @@ path = []
 
 # find_connections - A function that returns all relevant referrals by Wikipedia
 def return_connections(url):
-    start = time.time()
     html = urlopen(url) 
     soup = BeautifulSoup(html, 'html.parser')
     soup = soup.find_all("a", href=lambda href: href and href.startswith('/wiki/'))
-    print(time.time() - start)
 
     relevant_entries = {}
 
@@ -54,7 +52,6 @@ def determine_degrees(origin_url, end_url):
     #degree += 1
     print(len(origin_connections.values()))
     for entry in origin_connections.values(): 
-        print("wow")
         connections = return_connections(entry)
         if end_url in connections.keys():
             path.append(entry)
@@ -62,7 +59,6 @@ def determine_degrees(origin_url, end_url):
     
     # 3+ degree: origin -> ... -> end
     #degree += 1
-    print("wee")
     for entry in origin_connections.values(): 
         determine_degrees(entry, end_url)
 
