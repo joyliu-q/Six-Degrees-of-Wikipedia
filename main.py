@@ -5,14 +5,21 @@ import numpy as np
 import pandas as pd
 from urllib.request import urlopen
 import time 
+import sys
+import concurrent
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future 
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
 degree = 0
 path = []
+pool = ThreadPoolExecutor(3)
 
 # find_connections - A function that returns all relevant referrals by Wikipedia
 def return_connections(url):
+    #start = time.time()
+
     html = urlopen(url) 
     soup = BeautifulSoup(html, 'html.parser')
     soup = soup.find_all("a", href=lambda href: href and href.startswith('/wiki/'))
@@ -29,6 +36,7 @@ def return_connections(url):
                 # If relevant, add to entries
                 relevant_entries[entry.contents[0]] = "https://en.wikipedia.org" + entry["href"]
     
+    #print(time.time() - start)
     return relevant_entries
 
 # Determine amount of degrees and commonalities, with origin and end being urls
@@ -38,12 +46,10 @@ def determine_degrees(origin_url, end_url):
     global path
 
     path.append(origin_url)
-
     origin_connections = return_connections(origin_url)
 
     # 1st degree: origin -> end
     #degree += 1
-    print(origin_connections.values())
     if end_url in origin_connections.values():
         path.append(end_url)
         return path
@@ -51,17 +57,25 @@ def determine_degrees(origin_url, end_url):
     # 2nd degree: origin -> blah -> end
     #degree += 1
     print(len(origin_connections.values()))
-    for entry in origin_connections.values(): 
-        connections = return_connections(entry)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [executor.submit(return_connections, url) for url in origin_connections.values()]
+        results = []
+        for f in concurrent.futures.as_completed(futures):
+            results.append(f.result())
+    for connections in results: 
         if end_url in connections.keys():
-            path.append(entry)
+            path.append(connections)
             path.append(end_url)
     
     # 3+ degree: origin -> ... -> end
     #degree += 1
+    print("recursion")
     for entry in origin_connections.values(): 
         determine_degrees(entry, end_url)
 
-degree_info = determine_degrees("https://en.wikipedia.org/wiki/Philosophical_Transactions_of_the_Royal_Society", "https://en.wikipedia.org/wiki/Kevin_Bacon")
+def main():
+    degree_info = determine_degrees("https://en.wikipedia.org/wiki/Kevin_Bacon", "https://en.wikipedia.org/wiki/Hollywood")
+    print("Path: " + str(path))
 
-print("Path: " + str(path))
+if __name__ == '__main__':
+    main()
