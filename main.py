@@ -103,26 +103,28 @@ def determine_path(from_node, to_node):
     attempt_match_children(from_node, to_node)
 
     # 2+ degree: if none of the children match, continue to search through loop
-    current_node = from_node
-    current_generation = current_node.children
-    temp_generation = []
-    
-    while path_found == False: 
-        degree += 1
-        print(len(current_generation))
-        # Keep Looping through each sibling_node and check sibling's children
-        for sibling_node in current_generation:
-            attempt_match_children(sibling_node, to_node)
-            temp_generation.extend(sibling_node.children)
-            # If found match in current degree
-            print(len(temp_generation))
-            if path_found == True:
-                print("yas")
-                return sibling_node
-        # If none of the siblings in the level matched, move to higher degree
-        if path_found == False:
-            current_generation = temp_generation
-            temp_generation = []
+    if path_found == False:
+        current_node = from_node
+        current_generation = current_node.children
+        temp_generation = []
+        path.append(current_node)
+
+        while path_found == False: 
+            degree += 1
+            print(len(current_generation))
+            # Keep Looping through each sibling_node and check sibling's children
+            for sibling_node in current_generation:
+                attempt_match_children(sibling_node, to_node)
+                temp_generation.extend(sibling_node.children)
+                # If found match in current degree
+                print(len(temp_generation))
+                if path_found == True:
+                    print("yas")
+                    return sibling_node
+            # If none of the siblings in the level matched, move to higher degree
+            if path_found == False:
+                current_generation = temp_generation
+                temp_generation = []
 
     return path
 
@@ -131,7 +133,7 @@ def main():
     global current_generation
     root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
     current_generation.append(root)
-    target = Node("Elizabeth Perkins", "https://en.wikipedia.org/wiki/Elizabeth_Perkins")
+    target = Node("Weeds (TV series)", "https://en.wikipedia.org/wiki/Weeds_(TV_series)")
     determine_path(root, target)
     print("Path:")
     for node in path:
