@@ -10,12 +10,16 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future 
 
+# Changable Variables
+USE_THREADPOOL = True
+
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
 degree = 0
 path = []
 path_found = False
 current_generation = []
+child_generation = []
 
 class Node:
     def __init__(self, title, url):
@@ -67,17 +71,18 @@ class Node:
 
 def attempt_match_children(current_node, to_node):
     global path_found
-    global current_generation
+    global child_generation
     global path 
 
     current_node.find_children()
+    current_node.searched = True
 
-    # print(str(current_node.children))
     # Check children for any matches w/ to_node 
     for child_node in current_node.children:
         # Check if child_node was already searched
         if child_node.searched == False:
-            child_node.searched = True
+            # Add child_node to new generation
+            child_generation.append(child_node)
             # If child_node is the to_node, search is over
             if child_node.url == to_node.url:
                 path.append(current_node)
@@ -92,6 +97,7 @@ def determine_path(from_node, to_node):
     global current_generation
     global path
     global degree
+    global child_generation 
 
     # 0th degree
     if from_node.url == to_node.url:
@@ -106,25 +112,39 @@ def determine_path(from_node, to_node):
     if path_found == False:
         current_node = from_node
         current_generation = current_node.children
-        temp_generation = []
+        #temp_generation = []
         path.append(current_node)
 
         while path_found == False: 
             degree += 1
+            child_generation = []
             print(len(current_generation))
-            # Keep Looping through each sibling_node and check sibling's children
-            for sibling_node in current_generation:
-                attempt_match_children(sibling_node, to_node)
-                temp_generation.extend(sibling_node.children)
-                # If found match in current degree
-                print(len(temp_generation))
-                if path_found == True:
-                    print("yas")
-                    return sibling_node
+
+            if USE_THREADPOOL == False:
+                # Keep Looping through each sibling_node and check sibling's children
+                for sibling_node in current_generation:
+                    attempt_match_children(sibling_node, to_node)
+                    #temp_generation.extend(sibling_node.children)
+                    # If found match in current degree
+                    print(len(child_generation))
+                    if path_found == True:
+                        print("yas")
+                        return sibling_node
+            else:
+                # Use ThreadPool to find current children 
+                with ThreadPoolExecutor(max_workers=None) as executor:
+                    [executor.submit(attempt_match_children, sibling_node, to_node) for sibling_node in current_generation]
+                    #temp_generation.extend(sibling_node.children)
+                    # If found match in current degree
+                    print(len(child_generation))
+                    if path_found == True:
+                        print("yas")
+                        return sibling_node
+
             # If none of the siblings in the level matched, move to higher degree
             if path_found == False:
-                current_generation = temp_generation
-                temp_generation = []
+                current_generation = child_generation
+                child_generation = []
 
     return path
 
