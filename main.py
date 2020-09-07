@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future 
 
 # Changable Variables
-USE_THREADPOOL = True
+USE_THREADPOOL = False
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
@@ -57,17 +57,6 @@ class Node:
                     child_node.parent = self
                     self.children.append(child_node)
         #print(time.time() - start)           
-
-
-
-"""
-# Use ThreadPool to find current children 
-    with ThreadPoolExecutor(max_workers=None) as executor:
-        futures = [executor.submit(child_node.find_children) for child_node in current_node.children]
-        results = []
-        for f in concurrent.futures.as_completed(futures):
-            results.append(f.result())
-"""
 
 def attempt_match_children(current_node, to_node):
     global path_found
@@ -120,17 +109,16 @@ def determine_path(from_node, to_node):
             child_generation = []
             print(len(current_generation))
 
-            if USE_THREADPOOL == False:
-                # Keep Looping through each sibling_node and check sibling's children
-                for sibling_node in current_generation:
-                    attempt_match_children(sibling_node, to_node)
-                    #temp_generation.extend(sibling_node.children)
-                    # If found match in current degree
-                    print(len(child_generation))
-                    if path_found == True:
-                        print("yas")
-                        return sibling_node
-            else:
+            # Keep Looping through each sibling_node and check sibling's children
+            for sibling_node in current_generation:
+                attempt_match_children(sibling_node, to_node)
+                #temp_generation.extend(sibling_node.children)
+                # If found match in current degree
+                print(len(child_generation))
+                if path_found == True:
+                    print("yas")
+                    return sibling_node
+                """
                 # Use ThreadPool to find current children 
                 with ThreadPoolExecutor(max_workers=None) as executor:
                     [executor.submit(attempt_match_children, sibling_node, to_node) for sibling_node in current_generation]
@@ -140,7 +128,7 @@ def determine_path(from_node, to_node):
                     if path_found == True:
                         print("yas")
                         return sibling_node
-
+                """
             # If none of the siblings in the level matched, move to higher degree
             if path_found == False:
                 current_generation = child_generation
