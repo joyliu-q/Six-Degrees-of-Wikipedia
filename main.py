@@ -8,8 +8,7 @@ import time
 import sys
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import Future 
-import requests
+from concurrent.futures import Future, as_completed, wait
 
 # Changable Variables
 USE_THREADPOOL = False
@@ -21,7 +20,6 @@ path = []
 path_found = False
 current_generation = []
 child_generation = []
-session = requests.Session()
 
 # BS4 optimization
 only_a_tags = SoupStrainer("a")
@@ -39,8 +37,9 @@ class Node:
 
     # find_children - A function that returns all relevant referrals by Wikipedia
     def find_children(self):
-        response = session.get(self.url)
-        soup = BeautifulSoup(response.content, 'html.parser', parse_only = only_a_tags)
+        print("yaw")
+        response = urlopen(self.url)
+        soup = BeautifulSoup(response, 'html.parser', parse_only = only_a_tags)
         soup = soup.find_all("a", href=lambda href: href and href.startswith('/wiki/'))
 
         for entry in soup:
@@ -107,22 +106,18 @@ def determine_path(from_node, to_node):
         while path_found == False: 
             degree += 1
             child_generation = []
-            print(len(current_generation))
-
+            print("Deg: " + str(degree))
             # Special Threadpool to find children: attempt to stop BS4 from bottlenecking
             if USE_THREADPOOL == True:
-                with ThreadPoolExecutor(max_workers=None) as executor:
-                    [executor.submit(sibling_node.find_children()) for sibling_node in current_generation]
-                print("yaw")
-
-            # Keep Looping through each sibling_node and check sibling's children
+                with ThreadPoolExecutor(max_workers=2000) as executor:
+                    [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
+              # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
                 attempt_match_children(sibling_node, to_node)
                 # If found match in current degree
-                print(len(child_generation))
+                #print(len(child_generation))
                 if path_found == True:
                     return sibling_node
-
             # If none of the siblings in the level matched, move to higher degree
             if path_found == False:
                 current_generation = child_generation
@@ -138,7 +133,7 @@ def main():
 
     root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
     current_generation.append(root)
-    target = Node("Weeds (TV series)", "https://en.wikipedia.org/wiki/Weeds_(TV_series)")
+    target = Node("Film_noir", "https://en.wikipedia.org/wiki/Film_noir")
     determine_path(root, target)
     print("Path:")
     for node in path:
