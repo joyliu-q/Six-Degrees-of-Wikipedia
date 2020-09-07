@@ -8,6 +8,7 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future, as_completed, wait
 from threading import Thread
+import threading
 
 # Changable Variables
 USE_THREADPOOL = True
@@ -19,6 +20,7 @@ path = []
 path_found = False
 current_generation = []
 child_generation = []
+output = threading.Lock()
 
 # BS4 optimization
 only_a_tags = SoupStrainer("a")
@@ -36,10 +38,12 @@ class Node:
 
     # find_children - A function that returns all relevant referrals by Wikipedia
     def find_children(self):
+        global USE_THREADPOOL
+
         response = urlopen(self.url)
         soup = BeautifulSoup(response, 'html.parser', parse_only = only_a_tags)
         soup = soup.find_all("a", href=lambda href: href and href.startswith('/wiki/'))
-
+        print("yas finding kids")
         for entry in soup:
             if str(entry.contents) != "[]":
                 if "/wiki/Help:" in entry.contents[0] or "Wikipedia articles with" in entry.contents[0] or "[<" in entry.contents[0] or "<" in str(entry.contents[0]) or entry.contents[0] == None:
@@ -51,7 +55,6 @@ class Node:
                     child_node = Node(entry.contents[0],"https://en.wikipedia.org" + entry["href"])
                     child_node.parent = self
                     self.children.append(child_node)
-        return self
 
 def attempt_match_children(current_node, to_node):
     global path_found
@@ -94,6 +97,7 @@ def determine_path(from_node, to_node):
 
     # 1st degree
     degree += 1
+    from_node.find_children()
     attempt_match_children(from_node, to_node)
 
     # 2+ degree: if none of the children match, continue to search through loop
@@ -101,13 +105,26 @@ def determine_path(from_node, to_node):
         current_node = from_node
         current_generation = current_node.children
         path.append(current_node)
-
+        
         while path_found == False: 
             degree += 1
             child_generation = []
             print("Deg: " + str(degree))
             # Special Threadpool to find children: attempt to stop BS4 from bottlenecking
             if USE_THREADPOOL == True:
+                """threads = []
+                threads_finished = [False] * len(current_generation)
+                for sibling_node in current_generation:
+                    t = Thread(target = sibling_node.find_children())
+                    threads.append(t)
+                for thread in threads:
+                    thread.start()
+                for i, thread in enumerate(threads):
+                    thread.join()
+                    print(thread)
+                    threads_finished[i] = True
+                while True not in threads_finished:
+                    print(threads)"""
                 with ThreadPoolExecutor(max_workers=2000) as executor:
                     [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
             # Keep Looping through each sibling_node and check sibling's children
@@ -132,7 +149,7 @@ def main():
 
     root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
     current_generation.append(root)
-    target = Node("Film_noir", "https://en.wikipedia.org/wiki/Film_noir")
+    target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Neo-noir")
     determine_path(root, target)
     print("Path:")
     for node in path:
