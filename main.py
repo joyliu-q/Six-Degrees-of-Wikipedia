@@ -1,6 +1,6 @@
 import requests
 import urllib.request
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 import numpy as np
 import pandas as pd
 from urllib.request import urlopen
@@ -9,9 +9,10 @@ import sys
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future 
+import requests
 
 # Changable Variables
-USE_THREADPOOL = True
+USE_THREADPOOL = False
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
@@ -20,6 +21,10 @@ path = []
 path_found = False
 current_generation = []
 child_generation = []
+session = requests.Session()
+
+# BS4 optimization
+only_a_tags = SoupStrainer("a")
 
 class Node:
     def __init__(self, title, url):
@@ -34,9 +39,8 @@ class Node:
 
     # find_children - A function that returns all relevant referrals by Wikipedia
     def find_children(self):
-        #start = time.time()
-        html = urlopen(self.url) 
-        soup = BeautifulSoup(html, 'html.parser')
+        response = session.get(self.url)
+        soup = BeautifulSoup(response.content, 'html.parser', parse_only = only_a_tags)
         soup = soup.find_all("a", href=lambda href: href and href.startswith('/wiki/'))
 
         for entry in soup:
@@ -50,7 +54,6 @@ class Node:
                     child_node = Node(entry.contents[0],"https://en.wikipedia.org" + entry["href"])
                     child_node.parent = self
                     self.children.append(child_node)
-        #print(time.time() - start)           
 
 def attempt_match_children(current_node, to_node):
     global path_found
@@ -60,6 +63,7 @@ def attempt_match_children(current_node, to_node):
 
     if USE_THREADPOOL == False:
         current_node.find_children()
+
     current_node.searched = True
 
     # Check children for any matches w/ to_node 
@@ -92,7 +96,6 @@ def determine_path(from_node, to_node):
 
     # 1st degree
     degree += 1
-    from_node.find_children()
     attempt_match_children(from_node, to_node)
 
     # 2+ degree: if none of the children match, continue to search through loop
@@ -130,6 +133,9 @@ def determine_path(from_node, to_node):
 
 def main():
     global current_generation
+
+    start = time.time()
+
     root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
     current_generation.append(root)
     target = Node("Weeds (TV series)", "https://en.wikipedia.org/wiki/Weeds_(TV_series)")
@@ -138,6 +144,7 @@ def main():
     for node in path:
         print(node.url)
     print("Degree: " + str(degree))
+    print(time.time() - start)
 
 if __name__ == '__main__':
     main()
