@@ -151,12 +151,9 @@ def determine_path(from_node, to_node):
 
 def main():
     global current_generation
-
-    start = time.time()
-
     root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
     current_generation.append(root)
-    target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Neo-noir")
+    target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Hollywood")
     determine_path(root, target)
     print("Path: " + str(path))
     print("Degree: " + str(degree))
@@ -170,7 +167,7 @@ def main():
             print(node.url)
         nx.draw(G, with_labels=True)
         #plt.show()
-        plt.savefig('../found_path.svg')
+        plt.savefig('../res/found_path.svg')
 
 if __name__ == '__main__':
     main()
