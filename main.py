@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future 
 
 # Changable Variables
-USE_THREADPOOL = False
+USE_THREADPOOL = True
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
@@ -31,12 +31,6 @@ class Node:
 
     def get_url(self):
         return self.url
-
-    def check_searched(self):
-        if self.searched == True:
-            return True
-        else:
-            return False
 
     # find_children - A function that returns all relevant referrals by Wikipedia
     def find_children(self):
@@ -62,8 +56,10 @@ def attempt_match_children(current_node, to_node):
     global path_found
     global child_generation
     global path 
+    global USE_THREADPOOL
 
-    current_node.find_children()
+    if USE_THREADPOOL == False:
+        current_node.find_children()
     current_node.searched = True
 
     # Check children for any matches w/ to_node 
@@ -87,6 +83,7 @@ def determine_path(from_node, to_node):
     global path
     global degree
     global child_generation 
+    global USE_THREADPOOL
 
     # 0th degree
     if from_node.url == to_node.url:
@@ -95,13 +92,13 @@ def determine_path(from_node, to_node):
 
     # 1st degree
     degree += 1
+    from_node.find_children()
     attempt_match_children(from_node, to_node)
 
     # 2+ degree: if none of the children match, continue to search through loop
     if path_found == False:
         current_node = from_node
         current_generation = current_node.children
-        #temp_generation = []
         path.append(current_node)
 
         while path_found == False: 
@@ -109,26 +106,20 @@ def determine_path(from_node, to_node):
             child_generation = []
             print(len(current_generation))
 
+            # Special Threadpool to find children: attempt to stop BS4 from bottlenecking
+            if USE_THREADPOOL == True:
+                with ThreadPoolExecutor(max_workers=None) as executor:
+                    [executor.submit(sibling_node.find_children()) for sibling_node in current_generation]
+                print("yaw")
+
             # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
                 attempt_match_children(sibling_node, to_node)
-                #temp_generation.extend(sibling_node.children)
                 # If found match in current degree
                 print(len(child_generation))
                 if path_found == True:
-                    print("yas")
                     return sibling_node
-                """
-                # Use ThreadPool to find current children 
-                with ThreadPoolExecutor(max_workers=None) as executor:
-                    [executor.submit(attempt_match_children, sibling_node, to_node) for sibling_node in current_generation]
-                    #temp_generation.extend(sibling_node.children)
-                    # If found match in current degree
-                    print(len(child_generation))
-                    if path_found == True:
-                        print("yas")
-                        return sibling_node
-                """
+
             # If none of the siblings in the level matched, move to higher degree
             if path_found == False:
                 current_generation = child_generation
