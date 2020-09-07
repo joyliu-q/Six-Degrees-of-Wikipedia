@@ -1,3 +1,4 @@
+# Import
 from bs4 import BeautifulSoup, SoupStrainer
 import numpy as np
 from urllib.request import urlopen
@@ -9,8 +10,16 @@ from concurrent.futures import Future, as_completed, wait
 from threading import Thread
 import threading
 
+# Viualization Imports
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# Tree Visualization
+G = nx.DiGraph()
+
 # Changable Variables
 USE_THREADPOOL = False
+MAKE_GRAPH = True
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
@@ -51,12 +60,13 @@ class Node:
                     # If relevant, add to entries
                     child_node = Node(entry.contents[0],"https://en.wikipedia.org" + entry["href"])
                     child_node.parent = self
+                    # Visualization
                     self.children.append(child_node)
 
 def attempt_match_children(current_node, to_node):
-    global path_found
     global child_generation
     global path 
+    global path_found
     global USE_THREADPOOL
 
     if USE_THREADPOOL == False:
@@ -106,7 +116,6 @@ def determine_path(from_node, to_node):
         while path_found == False: 
             degree += 1
             child_generation = []
-            print("Deg: " + str(degree))
             # Special Threadpool to find children: attempt to stop BS4 from bottlenecking
             if USE_THREADPOOL == True:
                 """threads = []
@@ -127,7 +136,6 @@ def determine_path(from_node, to_node):
                     print("donezos")
             # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
-                print(sibling_node)
                 attempt_match_children(sibling_node, to_node)
                 # If found match in current degree
                 #print(len(child_generation))
@@ -150,11 +158,19 @@ def main():
     current_generation.append(root)
     target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Neo-noir")
     determine_path(root, target)
-    print("Path:")
-    for node in path:
-        print(node.url)
+    print("Path: " + str(path))
     print("Degree: " + str(degree))
-    print(time.time() - start)
+
+    # Visualization of Path
+    if MAKE_GRAPH:
+        for i, node in enumerate(path):
+            G.add_node(node.title)
+            if i > 0:
+                G.add_edge(path[i-1].title, node.title)
+            print(node.url)
+        nx.draw(G, with_labels=True)
+        #plt.show()
+        plt.savefig('../found_path.svg')
 
 if __name__ == '__main__':
     main()
