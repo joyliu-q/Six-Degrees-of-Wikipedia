@@ -1,5 +1,3 @@
-import requests
-import urllib.request
 from bs4 import BeautifulSoup, SoupStrainer
 import numpy as np
 import pandas as pd
@@ -9,9 +7,10 @@ import sys
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future, as_completed, wait
+from threading import Thread
 
 # Changable Variables
-USE_THREADPOOL = False
+USE_THREADPOOL = True
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
@@ -37,7 +36,6 @@ class Node:
 
     # find_children - A function that returns all relevant referrals by Wikipedia
     def find_children(self):
-        print("yaw")
         response = urlopen(self.url)
         soup = BeautifulSoup(response, 'html.parser', parse_only = only_a_tags)
         soup = soup.find_all("a", href=lambda href: href and href.startswith('/wiki/'))
@@ -53,6 +51,7 @@ class Node:
                     child_node = Node(entry.contents[0],"https://en.wikipedia.org" + entry["href"])
                     child_node.parent = self
                     self.children.append(child_node)
+        return self
 
 def attempt_match_children(current_node, to_node):
     global path_found
@@ -111,7 +110,7 @@ def determine_path(from_node, to_node):
             if USE_THREADPOOL == True:
                 with ThreadPoolExecutor(max_workers=2000) as executor:
                     [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
-              # Keep Looping through each sibling_node and check sibling's children
+            # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
                 attempt_match_children(sibling_node, to_node)
                 # If found match in current degree
