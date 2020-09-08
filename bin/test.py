@@ -12,7 +12,9 @@ import sys
 start = time.time()
 for i in range(100):
     response = urlopen("https://en.wikipedia.org/w/api.php?action=query&titles=" + "Title" + "&prop=links&pllimit=max&format=json")
+    dab = time.time()
     DATA = json.loads(response.read())
+    print(time.time() - dab)
 print(time.time() - start)
 
 # Normal/Old method: using BS4: average ime 0.5-0.6. 

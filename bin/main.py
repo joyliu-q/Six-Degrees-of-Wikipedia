@@ -136,10 +136,11 @@ def determine_path(from_node, to_node):
                     [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
             # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
-                attempt_match_children(sibling_node, to_node)
-                # If found match in current degree
-                if path_found == True:
-                    return sibling_node
+                if sibling_node.searched == False:
+                    attempt_match_children(sibling_node, to_node)
+                    # If found match in current degree
+                    if path_found == True:
+                        return sibling_node
             # If none of the siblings in the level matched, move to higher degree
             if path_found == False:
                 current_generation = child_generation
