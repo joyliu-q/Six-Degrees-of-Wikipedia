@@ -5,21 +5,36 @@ from urllib.request import urlopen
 import time 
 import sys
 import concurrent
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from concurrent.futures import Future, as_completed, wait
-from threading import Thread
-import threading
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future, as_completed, wait
+import argparse
 
 # Viualization Imports
 import networkx as nx
 import matplotlib.pyplot as plt
+
+# Argparse Set-up
+parser = argparse.ArgumentParser(description="Find the Distance between Two Wikipedia Pages")
+parser.add_argument('--tp', action='store_true',
+	help="enable threadpool (recommended for high depth)")
+parser.add_argument('--graph', action='store_true',
+	help="enable network graph creation")
+parser.add_argument('--saveGraph', type=str,
+	metavar='<path>', help='path to save graph network')
+args = parser.parse_args()
+if args.saveGraph and not args.graph:
+    print("You must have --graph enabled to save the graph!")
+    sys.exit(1)
 
 # Tree Visualization
 G = nx.DiGraph()
 
 # Changable Variables
 USE_THREADPOOL = False
-MAKE_GRAPH = True
+if args.tp:
+    USE_THREADPOOL = True
+MAKE_GRAPH = False
+if args.graph:
+    MAKE_GRAPH = True
 
 # Dismissed links are links shared by all sites and do not factor into 6 degrees of separation
 dismissed_links = ["Talk", "Categories", "Contributions", "Article", "Read", "Main page", "Contents", "Current events", "Random article", "About Wikipedia", "Help", "Community portal", "Recent changes", "Upload file", "What links here", "Related changes", "Upload file", "Special pages", "About Wikipedia", "Disclaimers", "Articles with short description", "Short description matches Wikidata", "Wikipedia indefinitely semi-protected biographies of living people", "Use mdy dates from October 2016", "Articles with hCards", "BLP articles lacking sources from October 2017", "All BLP articles lacking sources", "Commons category link from Wikidata", "Articles with IBDb links", "Internet Off-Broadway Database person ID same as Wikidata", "Short description is different from Wikidata", "PMID", "ISBN", "doi"] 
@@ -28,7 +43,6 @@ path = []
 path_found = False
 current_generation = []
 child_generation = []
-output = threading.Lock()
 
 # BS4 optimization
 only_a_tags = SoupStrainer("a", href=lambda href: href and href.startswith('/wiki/'))
@@ -118,27 +132,12 @@ def determine_path(from_node, to_node):
             child_generation = []
             # Special Threadpool to find children: attempt to stop BS4 from bottlenecking
             if USE_THREADPOOL == True:
-                """threads = []
-                threads_finished = [False] * len(current_generation)
-                for sibling_node in current_generation:
-                    t = Thread(target = sibling_node.find_children())
-                    threads.append(t)
-                for thread in threads:
-                    thread.start()
-                for i, thread in enumerate(threads):
-                    thread.join()
-                    print(thread)
-                    threads_finished[i] = True
-                while True not in threads_finished:
-                    print(threads)"""
-                with ThreadPoolExecutor(max_workers=2000) as executor:
+                with ThreadPoolExecutor(max_workers=4) as executor:
                     [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
-                    print("donezos")
             # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
                 attempt_match_children(sibling_node, to_node)
                 # If found match in current degree
-                #print(len(child_generation))
                 if path_found == True:
                     return sibling_node
             # If none of the siblings in the level matched, move to higher degree
@@ -151,10 +150,12 @@ def determine_path(from_node, to_node):
 
 def main():
     global current_generation
+    start = time.time()
     root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
     current_generation.append(root)
     target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Hollywood")
     determine_path(root, target)
+    print(time.time() - start)
     print("Path: " + str(path))
     print("Degree: " + str(degree))
 
@@ -166,8 +167,11 @@ def main():
                 G.add_edge(path[i-1].title, node.title)
             print(node.url)
         nx.draw(G, with_labels=True)
-        #plt.show()
-        plt.savefig('../res/found_path.svg')
+        if args.saveGraph:
+            plt.savefig(args.saveGraph)
+            #plt.savefig('../res/found_path.svg')
+        else:
+            plt.show()
 
 if __name__ == '__main__':
     main()
