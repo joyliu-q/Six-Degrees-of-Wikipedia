@@ -2,6 +2,7 @@
 from bs4 import BeautifulSoup, SoupStrainer
 import numpy as np
 from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 import time 
 import sys
 import concurrent
@@ -14,6 +15,16 @@ import matplotlib.pyplot as plt
 
 # Argparse Set-up
 parser = argparse.ArgumentParser(description="Find the Distance between Two Wikipedia Pages")
+"""
+parser.add_argument('--from', type=str, required=True,
+	help="the root wikipedia title")
+parser.add_argument('--to', type=str, required=True,
+	help="the target wikipedia title")
+"""
+parser.add_argument('--fromlink', type=str, required=True,
+	help="the root wikipedia link")
+parser.add_argument('--tolink', type=str, required=True,
+	help="the target wikipedia link")
 parser.add_argument('--tp', action='store_true',
 	help="enable threadpool (recommended for high depth)")
 parser.add_argument('--graph', action='store_true',
@@ -152,12 +163,39 @@ def determine_path(from_node, to_node):
 def main():
     global current_generation
     start = time.time()
-    root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
+
+    #root = Node("Kevin Bacon", "https://en.wikipedia.org/wiki/Kevin_Bacon")
+    #target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Hollywood")
+
+    # Find/Check Valid Root and Target URL
+    try: 
+        urlopen(args.fromlink)
+        urlopen(args.tolink)
+    except HTTPError:
+        print("HTTPError: Invalid URLs")
+        sys.exit(1)
+    except URLError:
+        print("URLError: Invalid URLs")
+        sys.exit(1)
+    except ValueError:
+        print("ValueError: Invalid URLs")
+        sys.exit(1)
+
+    # For now, the title attributes are set as "From Link" and "To Link", but 
+    #   will definitely grab link title in the future, as well as inputing "titles"
+    #   instead of links, so it's more user friendly and prettier
+    root = Node("From Link", args.fromlink)
+    target = Node("To Link", args.tolink)
+    
     current_generation.append(root)
-    target = Node("Neo-noir", "https://en.wikipedia.org/wiki/Hollywood")
     determine_path(root, target)
+    
+    # Present Data
+    path_names = []
+    for node in path:
+        path_names.append(node.title)
     print(time.time() - start)
-    print("Path: " + str(path))
+    print("Path: " + str(path_names))
     print("Degree: " + str(degree))
 
     # Visualization of Path
