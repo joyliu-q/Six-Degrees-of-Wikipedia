@@ -57,8 +57,8 @@ current_generation = []
 child_generation = []
 
 # Configure args.fromtitle and args.totitle
-args.fromtitle = string.capwords(args.fromtitle).replace(" ", "_")
-args.totitle = string.capwords(args.totitle).replace(" ", "_")
+args.fromtitle = string.capwords(args.fromtitle.lower()).replace(" ", "_")
+args.totitle = string.capwords(args.totitle.lower()).replace(" ", "_")
 
 # BS4 optimization
 only_a_tags = SoupStrainer("a", href=lambda href: href and href.startswith('/wiki/'))
