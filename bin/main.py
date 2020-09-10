@@ -8,6 +8,7 @@ import sys
 import concurrent
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future, as_completed, wait
 import argparse
+import string
 
 # Viualization Imports
 import networkx as nx
@@ -15,16 +16,16 @@ import matplotlib.pyplot as plt
 
 # Argparse Set-up
 parser = argparse.ArgumentParser(description="Find the Distance between Two Wikipedia Pages")
-"""
-parser.add_argument('--from', type=str, required=True,
+parser.add_argument('--fromtitle', type=str, required=True,
 	help="the root wikipedia title")
-parser.add_argument('--to', type=str, required=True,
+parser.add_argument('--totitle', type=str, required=True,
 	help="the target wikipedia title")
 """
 parser.add_argument('--fromlink', type=str, required=True,
 	help="the root wikipedia link")
 parser.add_argument('--tolink', type=str, required=True,
 	help="the target wikipedia link")
+"""
 parser.add_argument('--tp', action='store_true',
 	help="enable threadpool (recommended for high depth)")
 parser.add_argument('--graph', action='store_true',
@@ -54,6 +55,10 @@ path = []
 path_found = False
 current_generation = []
 child_generation = []
+
+# Configure args.fromtitle and args.totitle
+args.fromtitle = string.capwords(args.fromtitle).replace(" ", "_")
+args.totitle = string.capwords(args.totitle).replace(" ", "_")
 
 # BS4 optimization
 only_a_tags = SoupStrainer("a", href=lambda href: href and href.startswith('/wiki/'))
@@ -141,7 +146,7 @@ def determine_path(from_node, to_node):
         while path_found == False: 
             degree += 1
             child_generation = []
-            # Special Threadpool to find children: attempt to stop BS4 from bottlenecking
+            # Special Threadpool to find children: attempt to stop bottleneck
             if USE_THREADPOOL == True:
                 with ThreadPoolExecutor(max_workers=4) as executor:
                     [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
@@ -156,7 +161,6 @@ def determine_path(from_node, to_node):
             if path_found == False:
                 current_generation = child_generation
                 child_generation = []
-
     return path
 
 
@@ -169,23 +173,22 @@ def main():
 
     # Find/Check Valid Root and Target URL
     try: 
-        urlopen(args.fromlink)
-        urlopen(args.tolink)
+        urlopen("https://en.wikipedia.org/wiki/" + args.fromtitle)
+        print("https://en.wikipedia.org/wiki/" + args.fromtitle)
+        print("https://en.wikipedia.org/wiki/" + args.totitle)
+        urlopen("https://en.wikipedia.org/wiki/" + args.totitle)
     except HTTPError:
-        print("HTTPError: Invalid URLs")
+        print("HTTPError: Invalid Name")
         sys.exit(1)
     except URLError:
-        print("URLError: Invalid URLs")
+        print("URLError: Invalid Name")
         sys.exit(1)
     except ValueError:
-        print("ValueError: Invalid URLs")
+        print("ValueError: Invalid Name")
         sys.exit(1)
 
-    # For now, the title attributes are set as "From Link" and "To Link", but 
-    #   will definitely grab link title in the future, as well as inputing "titles"
-    #   instead of links, so it's more user friendly and prettier
-    root = Node("From Link", args.fromlink)
-    target = Node("To Link", args.tolink)
+    root = Node("From Link", "https://en.wikipedia.org/wiki/" + args.fromtitle)
+    target = Node("To Link", "https://en.wikipedia.org/wiki/" + args.totitle)
     
     current_generation.append(root)
     determine_path(root, target)
