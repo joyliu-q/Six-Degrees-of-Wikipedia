@@ -1,14 +1,18 @@
 # Import
-from bs4 import BeautifulSoup, SoupStrainer
-import numpy as np
-from urllib.request import urlopen
-from urllib.error import URLError, HTTPError
 import time 
 import sys
-import concurrent
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future, as_completed, wait
+import numpy as np
 import argparse
 import string
+
+import concurrent
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future, as_completed, wait
+
+# Webscraping Imports
+from bs4 import BeautifulSoup, SoupStrainer
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
+import grequests
 
 # Viualization Imports
 import networkx as nx
@@ -20,12 +24,6 @@ parser.add_argument('--fromtitle', type=str, required=True,
 	help="the root wikipedia title")
 parser.add_argument('--totitle', type=str, required=True,
 	help="the target wikipedia title")
-"""
-parser.add_argument('--fromlink', type=str, required=True,
-	help="the root wikipedia link")
-parser.add_argument('--tolink', type=str, required=True,
-	help="the target wikipedia link")
-"""
 parser.add_argument('--tp', action='store_true',
 	help="enable threadpool (recommended for high depth)")
 parser.add_argument('--graph', action='store_true',
@@ -63,6 +61,7 @@ args.totitle = string.capwords(args.totitle.lower()).replace(" ", "_")
 # BS4 optimization
 only_a_tags = SoupStrainer("a", href=lambda href: href and href.startswith('/wiki/'))
 
+# Define Node
 class Node:
     def __init__(self, title, url):
         self.title = title
@@ -146,10 +145,11 @@ def determine_path(from_node, to_node):
         while path_found == False: 
             degree += 1
             child_generation = []
-            # Special Threadpool to find children: attempt to stop bottleneck
+            '''# Special Threadpool to find children: attempt to stop bottleneck
             if USE_THREADPOOL == True:
                 with ThreadPoolExecutor(max_workers=4) as executor:
                     [executor.map(sibling_node.find_children()) for sibling_node in current_generation]
+            '''
             # Keep Looping through each sibling_node and check sibling's children
             for sibling_node in current_generation:
                 if sibling_node.searched == False:
@@ -187,8 +187,9 @@ def main():
         print("ValueError: Invalid Name")
         sys.exit(1)
 
-    root = Node("From Link", "https://en.wikipedia.org/wiki/" + args.fromtitle)
-    target = Node("To Link", "https://en.wikipedia.org/wiki/" + args.totitle)
+    # Set-Up Nodes of Root and Target
+    root = Node(args.fromtitle, "https://en.wikipedia.org/wiki/" + args.fromtitle)
+    target = Node(args.totitle, "https://en.wikipedia.org/wiki/" + args.totitle)
     
     current_generation.append(root)
     determine_path(root, target)

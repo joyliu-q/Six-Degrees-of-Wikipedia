@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Degrees</title>
+    <style>
+        #nav_bar {
+            color: #ffffff;
+            padding: 0px 5px 5px 5px;
+            position: sticky;
+        }
+        body {
+            font-family: Roboto,'Open Sans', 'Helvetica Neue';
+            background-color: #03045E;
+        }
+        h3 {
+            font-size: 2vw;
+            padding: 0;
+            margin: 0;
+        }
+        p {
+            font-size: 1vw;
+            padding: 0;
+            margin: 0;
+        }
+        input {
+            border-radius:15px;
+            padding: 5px;
+            width: 25%;
+            resize: none;
+            font-size: 3vw;
+            text-align: center;
+            font-family: Roboto,'Open Sans', 'Helvetica Neue';
+            background-color: rgba(0,0,0,0);
+            color: #ffffff;
+            border: 0;
+        }
+        #from_topic {
+            background-color: #CAF0F8;
+            color: #009EBD;
+        }
+        #to_topic {
+            background-color: #009EBD;
+            color: #CAF0F8;
+        }
+        #from_topic::placeholder { 
+            color: #009EBD;
+            opacity: 0.5;
+            font-family: Roboto,'Open Sans', 'Helvetica Neue';
+        }
+        #to_topic::placeholder { 
+            color: #CAF0F8;
+            opacity: 0.5;
+            font-family: Roboto,'Open Sans', 'Helvetica Neue';
+        }
+    </style>
+</head>
+<body>
+    <div id = "nav_bar">
+        <h3>SIX DEGREES OF WIKIPEDIA</h3>
+        <p>find the shortest distance between pages</p>
+    </div>
+    <form>
+        <input id = "from_topic" placeholder="FROM TOPIC"></textarea>
+        <input id = "to_topic" placeholder="TO TOPIC"></textarea>
+        <input type="submit" value="CALCULATE">
+    </form>
+</body>
+</html>

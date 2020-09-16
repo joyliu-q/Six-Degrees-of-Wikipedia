@@ -9,7 +9,7 @@ Not available as of now.
 
 ## Known Issues
 
-Code may take a significant amount of time to run beyond the 3rd degree. 
+Code may take a significant amount of time to run beyond the 3rd degree. This is because each Wikipedia page has around 300~500 links and the runtime increases with each degree raised. 
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
