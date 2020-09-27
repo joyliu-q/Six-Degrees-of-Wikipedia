@@ -1,0 +1,14 @@
+beautifulsoup4==4.9.1
+bs4==0.0.1
+grequests==0.6.0
+jsonschema==3.2.0
+jupyter==1.0.0
+jupyter-client==6.1.7
+jupyter-console==6.2.0
+jupyter-core==4.6.3
+k==0.0.1
+kiwisolver==1.2.0
+lazy-object-proxy==1.4.3
+lib50==2.0.8
+lxml==4.5.2
+matplotlib==3.3.1

@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import argparse
 import string
-
 import concurrent
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future, as_completed, wait
 
@@ -143,6 +142,7 @@ def determine_path(from_node, to_node):
         path.append(current_node)
         
         while path_found == False: 
+            print("Degree Raised")
             degree += 1
             child_generation = []
             '''# Special Threadpool to find children: attempt to stop bottleneck
